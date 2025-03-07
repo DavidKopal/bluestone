@@ -147,6 +147,8 @@ canv.addEventListener('mouseup', () => {
 })
 
 canv.addEventListener('mousemove', (event) => {
+    document.getElementById('coords').textContent = `${gameX}, ${gameY}`
+    document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
     if (!drawing && !erasing) return
 
     const rect = canv.getBoundingClientRect()
@@ -155,11 +157,6 @@ canv.addEventListener('mousemove', (event) => {
 
     const gameX = Math.floor(mouseX / 10)
     const gameY = Math.floor(mouseY / 10)
-
-    if (!OOB(gameX, gameY)) {
-        document.getElementById('coords').textContent = `${gameX}, ${gameY}`
-        document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
-    }
 
     if (drawing && Empty(gameX, gameY)) {
         placeStone(gameX, gameY)

@@ -71,5 +71,8 @@ p {
 
 #debug {
     text-align: center;
-    padding-right: 20px;
+}
+
+.debugcont {
+    padding-right: 25px;
 }
