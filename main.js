@@ -95,31 +95,31 @@ canv.addEventListener('click', (event) => {
     const mouseX = event.clientX - rect.left
     const mouseY = event.clientY - rect.top
 
-    const gridX = Math.floor(mouseX / 10) // Assuming pixelSize = 10
-    const gridY = Math.floor(mouseY / 10)
+    const gameX = Math.floor(mouseX / 10) // Assuming pixelSize = 10
+    const gameY = Math.floor(mouseY / 10)
 
-    if (!OOB(gridX, gridY)) {
-        if (Empty(gridX, gridY)) {
-            game[gridX][gridY] = { type: selected.slice(), color: bluestones[selected].color.slice(), x: gridX, y: gridY, power: bluestones[selected].constantPower || 0 }
+    if (!OOB(gameX, gameY)) {
+        if (Empty(gameX, gameY)) {
+            game[gameX][gameY] = { type: selected.slice(), color: bluestones[selected].color.slice(), x: gameX, y: gameY, power: bluestones[selected].constantPower || 0 }
             if (bluestones[selected].colorActivated) {
-                game[gridX][gridY]['colorActivated'] = bluestones[selected].colorActivated.slice()
+                game[gameX][gameY]['colorActivated'] = bluestones[selected].colorActivated.slice()
             }
             let stone = bluestones[selected]
             if (stone.props) {
                 let array = Object.keys(stone.props)
                 array.forEach(key => {
-                    game[gridX][gridY][key] = stone.props[key]
+                    game[gameX][gameY][key] = stone.props[key]
                 }) 
             }
         } else {
-            game[gridX][gridY] = undefined
+            game[gameX][gameY] = undefined
         }
     }
 })
 
 function update() {
     ctx.clearRect(0, 0, canv.width, canv.height)
-    for (let x = 0; x < 40; x++) {
+    for (let x = 0; x < 60; x++) {
         for (let y = 0; y < 40; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
