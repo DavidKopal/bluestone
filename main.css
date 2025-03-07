@@ -4,7 +4,7 @@
 }
 
 html, body {
-    font-family: ps2p, sans-serif;
+    font-family: ps2p;
     margin: 0;
     padding: 0;
     background-color: #1a1a1a;
@@ -47,6 +47,7 @@ button {
     border: none;
     border-radius: 5px;
     transition: background-color 0.3s;
+    font-family: ps2p;
 }
 
 p {
