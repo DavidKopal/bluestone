@@ -57,8 +57,8 @@ let bluestones = {
         ignore: ['torch', 'concrete']
     },
     torch: {
-        color: "#400000",
-        colorActivated: "#FF0000",
+        color: "#004000",
+        colorActivated: "#00ff00",
         props: {
             disabled: false
         },
