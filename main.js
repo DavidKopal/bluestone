@@ -44,6 +44,7 @@ let dustColors = [
     "#0000E0", "#0000F0", "#0000FF", "#1010FF", "#2020FF"
 ]
 
+let tunnel = "right"
 let bluestones = {
     dust: {
         color: "#000040",
@@ -87,35 +88,106 @@ let bluestones = {
     lamp: {
         color: '#404000',
         colorActivated: "#FFFF00",
+    },
+    tunnel: {
+        color: '#686868',
+        selected: () => {
+            tunnel = prompt("Which way? (right, left, up, down)")
+        },
+        placed: (pixel) => {
+            pixel.way = tunnel.slice()
+        },
+        behavior: (pixel) => {
+            let targetX = pixel.x
+            let targetY = pixel.y
+        
+            if (pixel.way == 'right') targetX++
+            else if (pixel.way == 'left') targetX--
+            else if (pixel.way == 'up') targetY--
+            else if (pixel.way == 'down') targetY++
+        
+            if (!OOB(targetX, targetY) && !Empty(targetX, targetY)) {
+                let neighbor = game[targetX][targetY]
+        
+                if (neighbor.power < pixel.power) {
+                    neighbor.power = pixel.power - 1
+                }
+            }
+        }        
     }
 }
 
-canv.addEventListener('click', (event) => {
+let drawing = false
+let erasing = false
+
+canv.addEventListener('mousedown', (event) => {
     const rect = canv.getBoundingClientRect()
     const mouseX = event.clientX - rect.left
     const mouseY = event.clientY - rect.top
 
-    const gameX = Math.floor(mouseX / 10) // Assuming pixelSize = 10
+    const gameX = Math.floor(mouseX / 10)
     const gameY = Math.floor(mouseY / 10)
 
     if (!OOB(gameX, gameY)) {
         if (Empty(gameX, gameY)) {
-            game[gameX][gameY] = { type: selected.slice(), color: bluestones[selected].color.slice(), x: gameX, y: gameY, power: bluestones[selected].constantPower || 0 }
-            if (bluestones[selected].colorActivated) {
-                game[gameX][gameY]['colorActivated'] = bluestones[selected].colorActivated.slice()
-            }
-            let stone = bluestones[selected]
-            if (stone.props) {
-                let array = Object.keys(stone.props)
-                array.forEach(key => {
-                    game[gameX][gameY][key] = stone.props[key]
-                }) 
-            }
+            drawing = true
+            erasing = false
+            placeStone(gameX, gameY)
         } else {
-            game[gameX][gameY] = undefined
+            drawing = false
+            erasing = true
+            removeStone(gameX, gameY)
         }
     }
 })
+
+canv.addEventListener('mouseup', () => {
+    drawing = false
+    erasing = false
+})
+
+canv.addEventListener('mousemove', (event) => {
+    if (!drawing && !erasing) return
+
+    const rect = canv.getBoundingClientRect()
+    const mouseX = event.clientX - rect.left
+    const mouseY = event.clientY - rect.top
+
+    const gameX = Math.floor(mouseX / 10)
+    const gameY = Math.floor(mouseY / 10)
+
+    if (!OOB(gameX, gameY)) {
+        document.getElementById('coords').textContent = `${gameX}, ${gameY}`
+        document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
+    }
+
+    if (drawing && Empty(gameX, gameY)) {
+        placeStone(gameX, gameY)
+    } else if (erasing && !Empty(gameX, gameY)) {
+        removeStone(gameX, gameY)
+    }
+})
+
+function placeStone(x, y) {
+    game[x][y] = { type: selected.slice(), color: bluestones[selected].color.slice(), x: x, y: y, power: bluestones[selected].constantPower || 0 }
+    if (bluestones[selected].colorActivated) {
+        game[x][y]['colorActivated'] = bluestones[selected].colorActivated.slice()
+    }
+    let stone = bluestones[selected]
+    if (stone.props) {
+        let array = Object.keys(stone.props)
+        array.forEach(key => {
+            game[x][y][key] = stone.props[key]
+        }) 
+    }
+    if (stone.placed) {
+        stone.placed(game[x][y])
+    }
+}
+
+function removeStone(x, y) {
+    game[x][y] = undefined
+}
 
 function update() {
     ctx.clearRect(0, 0, canv.width, canv.height)
@@ -141,7 +213,7 @@ function update() {
                     let ns = pixelNeighbors(pixel.x, pixel.y)
                     ns.forEach(n => {
                         let neighbor = game[n[0]][n[1]]
-                        if (!bluestones[pixel.type].ignore || !bluestones[pixel.type].ignore.includes(neighbor.type)) {
+                        if (!bluestones[pixel.type].ignore || (!bluestones[pixel.type].ignore.includes(neighbor.type))) {
                             if (neighbor && neighbor.power > pixel.power) {
                                 pixel.power = neighbor.power - 1
                                 powered = true
@@ -178,10 +250,20 @@ function loadAddons() {
 function setup() {
     let bluestoneArray = Object.keys(bluestones)
     bluestoneArray.forEach(stone => {
+        if (!bluestones[stone].ignore) {
+            bluestones[stone].ignore = ["tunnel"]
+        } else {
+            if (!bluestones[stone].ignore.includes("tunnel")) {
+                bluestones[stone].ignore.push("tunnel")
+            }
+        }
         let button = document.createElement('button')
         button.textContent = stone
         button.onclick = () => {
             selected = stone
+            if (bluestones[stone].selected) {
+                bluestones[stone].selected()
+            }
         }
         button.className = 'stone'
         button.style.backgroundColor = bluestones[stone].color
