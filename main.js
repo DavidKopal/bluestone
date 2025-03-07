@@ -98,22 +98,26 @@ let bluestones = {
             pixel.way = tunnel.slice()
         },
         behavior: (pixel) => {
-            let targetX = pixel.x
-            let targetY = pixel.y
-        
-            if (pixel.way == 'right') targetX++
-            else if (pixel.way == 'left') targetX--
-            else if (pixel.way == 'up') targetY--
-            else if (pixel.way == 'down') targetY++
-        
-            if (!OOB(targetX, targetY) && !Empty(targetX, targetY)) {
-                let neighbor = game[targetX][targetY]
-        
+            let trgX = pixel.x
+            let trgY = pixel.y
+    
+            if (pixel.way == 'right') trgX++
+            else if (pixel.way == 'left') trgX--
+            else if (pixel.way == 'up') trgY--
+            else if (pixel.way == 'down') trgY++
+
+            if (!OOB(trgX, trgY) && !Empty(trgX, trgY)) {
+                let neighbor = game[trgX][trgY]
                 if (neighbor.power < pixel.power) {
                     neighbor.power = pixel.power - 1
+                    if (neighbor.type == 'tunnel') {
+                        bluestones[neighbor.type].behavior(neighbor) 
+                    } else if (neighbor.type == 'dust') {
+                        neighbor.power = pixel.power - 1
+                    }
                 }
             }
-        }        
+        }       
     }
 }
 
@@ -147,16 +151,18 @@ canv.addEventListener('mouseup', () => {
 })
 
 canv.addEventListener('mousemove', (event) => {
-    document.getElementById('coords').textContent = `${gameX}, ${gameY}`
-    document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
-    if (!drawing && !erasing) return
-
     const rect = canv.getBoundingClientRect()
     const mouseX = event.clientX - rect.left
     const mouseY = event.clientY - rect.top
 
     const gameX = Math.floor(mouseX / 10)
     const gameY = Math.floor(mouseY / 10)
+
+    if (!OOB(gameX, gameY)) {
+        document.getElementById('coords').textContent = `${gameX}, ${gameY}`
+        document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
+    }
+    if (!drawing && !erasing) return
 
     if (drawing && Empty(gameX, gameY)) {
         placeStone(gameX, gameY)
@@ -188,6 +194,7 @@ function removeStone(x, y) {
 
 function update() {
     ctx.clearRect(0, 0, canv.width, canv.height)
+
     for (let x = 0; x < 60; x++) {
         for (let y = 0; y < 40; y++) {
             if (!Empty(x, y)) {
@@ -195,6 +202,24 @@ function update() {
                 if (bluestones[pixel.type].behavior) {
                     bluestones[pixel.type].behavior(pixel)
                 }
+            }
+        }
+    }
+
+    let prePower = []
+    for (let x = 0; x < 60; x++) {
+        prePower[x] = []
+        for (let y = 0; y < 40; y++) {
+            if (!Empty(x, y)) {
+                prePower[x][y] = game[x][y].power
+            }
+        }
+    }
+
+    for (let x = 0; x < 60; x++) {
+        for (let y = 0; y < 40; y++) {
+            if (!Empty(x, y)) {
+                let pixel = game[x][y]
                 if (pixel.type == 'dust') {
                     ctx.fillStyle = dustColors[pixel.power]
                 } else if (pixel.power > 0 && bluestones[pixel.type].colorActivated) {
@@ -202,36 +227,38 @@ function update() {
                 } else {
                     ctx.fillStyle = pixel.color
                 }
-
                 if (bluestones[pixel.type].constantPower) {
                     pixel.power = bluestones[pixel.type].constantPower
                 } else {
+                    let maxnp = 0 // max neighbor power
                     let powered = false
                     let ns = pixelNeighbors(pixel.x, pixel.y)
+                    
                     ns.forEach(n => {
-                        let neighbor = game[n[0]][n[1]]
-                        if (!bluestones[pixel.type].ignore || (!bluestones[pixel.type].ignore.includes(neighbor.type))) {
-                            if (neighbor && neighbor.power > pixel.power) {
-                                pixel.power = neighbor.power - 1
-                                powered = true
-                            }
-                        }                        
-                    })
-                    if (!powered) {
-                        if (!bluestones[pixel.type].ignorePoweredProperty) {
-                            pixel.power = 0
-                        } else {
-                            if (bluestones[pixel.type].ignorePoweredProperty == true) {
-                                pixel.power = pixel.power
+                        let nx = n[0], ny = n[1]
+                        if (prePower[nx] && prePower[nx][ny] !== undefined) {
+                            let neighborPower = prePower[nx][ny]
+                            if (!bluestones[pixel.type].ignore || (!bluestones[pixel.type].ignore.includes(game[nx][ny].type))) {
+                                if (neighborPower > maxnp) {
+                                    maxnp = neighborPower
+                                    powered = true
+                                }
                             }
                         }
+                    })
+                    
+                    if (powered) {
+                        pixel.power = maxnp - 1
+                    } else if (!bluestones[pixel.type].ignorePoweredProperty) {
+                        pixel.power = 0
                     }
                 }
-
+                
                 ctx.fillRect(x * 10, y * 10, 10, 10)
             }
         }
     }
+    
     requestAnimationFrame(update)
 }
 
