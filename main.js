@@ -77,7 +77,7 @@ let bluestones = {
     },
     copper: {
         color: "#b87333",
-        ignore: ['torch', 'copper']
+        ignore: ['torch', 'copper', 'extender']
     },
     concrete: {
         color: "#ededed",
@@ -234,7 +234,28 @@ let bluestones = {
                 pixel.power = 0
             }
         },
-    }
+    },
+    extender: {
+        color: '#b400b4',
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            let powered = false
+            ns.forEach(n => {
+                let neighbor = game[n[0]][n[1]]
+                if (neighbor.type == 'copper' && neighbor.power > 0) {
+                    powered = true
+                }
+
+            })
+            if (powered) {
+                pixel.power = 30
+            } else {
+                pixel.power = 0
+            }
+        },
+        ignorePoweredProperty: true,
+        ignore: ['copper']
+    },
 }
 bluestones.pass.ignore = Object.keys(bluestones)
 
@@ -300,12 +321,12 @@ function placeStone(x, y) {
             let bx = x + i
             let by = y + j
             if (!OOB(bx, by)) {
-                game[bx][by] = { 
-                    type: selected.slice(), 
-                    color: bluestones[selected].color.slice(), 
-                    x: bx, 
-                    y: by, 
-                    power: bluestones[selected].constantPower || 0 
+                game[bx][by] = {
+                    type: selected.slice(),
+                    color: bluestones[selected].color.slice(),
+                    x: bx,
+                    y: by,
+                    power: bluestones[selected].constantPower || 0
                 }
                 if (bluestones[selected].colorActivated) {
                     game[bx][by]['colorActivated'] = bluestones[selected].colorActivated.slice()
@@ -434,7 +455,7 @@ function loadAddons() {
 }
 
 function save() {
-    const file = new Blob([JSON.stringify(game)], { type: 'text/plain' })
+    const file = new Blob([JSON.stringify(radios),JSON.stringify(game)], { type: 'text/plain' })
     const a = document.createElement('a')
     const url = URL.createObjectURL(file)
     a.href = url
@@ -452,7 +473,8 @@ document.getElementById("fileInput").addEventListener("change", function (event)
     if (file) {
         const reader = new FileReader()
         reader.onload = function (e) {
-            let parsed = JSON.parse(e.target.result)
+            let parsedfirst = JSON.parse(e.target.result)
+            let parsed = parsedfirst[1]
             for (let x = 0; x < 100; x++) {
                 for (let y = 0; y < 60; y++) {
                     if (parsed[x][y] == null) {
@@ -461,6 +483,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
                 }
             }
             game = parsed
+            radios = parsedfirst[0]
         }
         reader.readAsText(file)
     }
