@@ -9,6 +9,8 @@ for (let x = 0; x < 100; x++) {
     }
 }
 
+let brushSize = 1
+
 let addons = []
 
 if (localStorage.getItem('addons')) {
@@ -282,37 +284,63 @@ canv.addEventListener('mousemove', (event) => {
             document.getElementById('elem').textContent = "Elem: none"
         }
     }
-    if (!drawing && !erasing) return
 
-    if (drawing && Empty(gameX, gameY)) {
+    if (drawing) {
         placeStone(gameX, gameY)
-    } else if (erasing && !Empty(gameX, gameY)) {
+    } else if (erasing) {
         removeStone(gameX, gameY)
     }
 })
 
+
 function placeStone(x, y) {
-    game[x][y] = { type: selected.slice(), color: bluestones[selected].color.slice(), x: x, y: y, power: bluestones[selected].constantPower || 0 }
-    if (bluestones[selected].colorActivated) {
-        game[x][y]['colorActivated'] = bluestones[selected].colorActivated.slice()
-    }
-    let stone = bluestones[selected]
-    if (stone.props) {
-        let array = Object.keys(stone.props)
-        array.forEach(key => {
-            game[x][y][key] = stone.props[key]
-        })
-    }
-    if (stone.placed) {
-        stone.placed(game[x][y])
+    let hBrush = Math.floor(brushSize / 2)
+    for (let i = -hBrush; i <= hBrush; i++) {
+        for (let j = -hBrush; j <= hBrush; j++) {
+            let bx = x + i
+            let by = y + j
+            if (!OOB(bx, by)) {
+                game[bx][by] = { 
+                    type: selected.slice(), 
+                    color: bluestones[selected].color.slice(), 
+                    x: bx, 
+                    y: by, 
+                    power: bluestones[selected].constantPower || 0 
+                }
+                if (bluestones[selected].colorActivated) {
+                    game[bx][by]['colorActivated'] = bluestones[selected].colorActivated.slice()
+                }
+                let stone = bluestones[selected]
+                if (stone.props) {
+                    let array = Object.keys(stone.props)
+                    array.forEach(key => {
+                        game[bx][by][key] = stone.props[key]
+                    })
+                }
+                if (stone.placed) {
+                    stone.placed(game[bx][by])
+                }
+            }
+        }
     }
 }
 
 function removeStone(x, y) {
-    if (game[x][y].erased) {
-        game[x][y].erased(game[x][y])
+    let hBrush = Math.floor(brushSize / 2)
+    for (let i = -hBrush; i <= hBrush; i++) {
+        for (let j = -hBrush; j <= hBrush; j++) {
+            let bx = x + i
+            let by = y + j
+            if (!OOB(bx, by)) {
+                if (game[bx][by] !== undefined) {
+                    if (game[bx][by].erased) {
+                        game[bx][by].erased(game[bx][by])
+                    }
+                    game[bx][by] = undefined
+                }
+            }
+        }
     }
-    game[x][y] = undefined
 }
 
 function resetGame() {
