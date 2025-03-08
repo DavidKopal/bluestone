@@ -9,6 +9,8 @@ for (let x = 0; x < 100; x++) {
     }
 }
 
+let version = '0.6'
+
 let brushSize = 1
 
 let addons = []
@@ -57,10 +59,12 @@ let pass_ = 0
 let bluestones = {
     dust: {
         color: "#000040",
+        description: "Like your everyday's wire."
     },
     generator: {
         color: "#FF0000",
-        constantPower: 30
+        constantPower: 30,
+        description: "Generates power out of air molecules."
     },
     constant_generator: {
         color: "#FF1256",
@@ -73,16 +77,19 @@ let bluestones = {
         },
         behavior: (pixel) => {
             pixel.power = pixel.gen
-        }
+        },
+        description: "Generates a set power amount out of air molecules."
     },
     copper: {
         color: "#b87333",
-        ignore: ['torch', 'copper', 'extender']
+        ignore: ['torch', 'copper', 'extender'],
+        description: "Used for manipulation with batteries, extenders, torches and more."
     },
     concrete: {
         color: "#ededed",
         constantPower: 0,
-        ignorePoweredProperty: true
+        ignorePoweredProperty: true,
+        description: "Does nothing for the world, like a communist."
     },
     torch: {
         color: "#004000",
@@ -114,7 +121,8 @@ let bluestones = {
             }
         },
         ignorePoweredProperty: true, // Doesn't set power to 0 even if !powered
-        ignore: ['dust', 'copper']
+        ignore: ['dust', 'copper'],
+        description: "Generator which can be turned on/off with powered copper."
     },
     receiver: {
         color: '#ffbcbc',
@@ -131,7 +139,8 @@ let bluestones = {
             if (index !== -1) {
                 radios.splice(index, 1)
             }
-        }
+        },
+        description: "Recieves power from senders."
     },
     sender: {
         color: '#bcffbc',
@@ -149,11 +158,13 @@ let bluestones = {
                     }
                 })
             }
-        }
+        },
+        description: "Sends power to recievers and radio lamps."
     },
     lamp: {
         color: '#404000',
         colorActivated: "#FFFF00",
+        description: "Lights up when powered."
     },
     radio_lamp: {
         color: '#404000',
@@ -172,7 +183,8 @@ let bluestones = {
                 radios.splice(index, 1)
             }
         },
-        ignore: ['radio_lamp']
+        ignore: ['radio_lamp'],
+        description: "Lights up when recieving a signal."
     },
     tunnel: {
         color: '#686868',
@@ -205,7 +217,8 @@ let bluestones = {
                     }
                 }
             }
-        }
+        },
+        description: "Redirects signals to go a specific way."
     },
     pass: {
         color: '#ffb',
@@ -234,6 +247,7 @@ let bluestones = {
                 pixel.power = 0
             }
         },
+        description: "Allows power to go through when it's equal to or higher than a set value."
     },
     extender: {
         color: '#b400b4',
@@ -254,7 +268,35 @@ let bluestones = {
             }
         },
         ignorePoweredProperty: true,
-        ignore: ['copper']
+        ignore: ['copper'],
+        description: "Extends signal with powered copper."
+    },
+    battery: {
+        color: '#bede00',
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            let ns2 = []
+            let powered = false
+            ns.forEach(n => {
+                let neighbor = game[n[0]][n[1]]
+                if (neighbor.type !== 'copper') {
+                    ns2.push(neighbor)
+                }
+                if (neighbor.type == 'copper' && neighbor.power > 0) {
+                    powered = true
+                }
+                if (powered) {
+                    ns2.forEach(neighbor => {
+                        neighbor.power = pixel.power
+                    })
+                    pixel.power = 0
+                }
+
+            })
+        },
+        ignorePoweredProperty: true,
+        ignore: ['copper'],
+        description: "Stores and releases energy when reacting with powered copper."
     },
 }
 bluestones.pass.ignore = Object.keys(bluestones)
@@ -288,6 +330,9 @@ canv.addEventListener('mouseup', () => {
     erasing = false
 })
 
+let mX = 0
+let mY = 0
+
 canv.addEventListener('mousemove', (event) => {
     const rect = canv.getBoundingClientRect()
     const mouseX = event.clientX - rect.left
@@ -295,6 +340,9 @@ canv.addEventListener('mousemove', (event) => {
 
     const gameX = Math.floor(mouseX / 10)
     const gameY = Math.floor(mouseY / 10)
+
+    mX = gameX * 10
+    mY = gameY * 10
 
     if (!OOB(gameX, gameY)) {
         document.getElementById('coords').textContent = `${gameX}, ${gameY}`
@@ -316,8 +364,11 @@ canv.addEventListener('mousemove', (event) => {
 
 function placeStone(x, y) {
     let hBrush = Math.floor(brushSize / 2)
-    for (let i = -hBrush; i <= hBrush; i++) {
-        for (let j = -hBrush; j <= hBrush; j++) {
+
+    let offset = (brushSize % 2 === 0) ? 0 : 1
+
+    for (let i = -hBrush; i < hBrush + offset; i++) {
+        for (let j = -hBrush; j < hBrush + offset; j++) {
             let bx = x + i
             let by = y + j
             if (!OOB(bx, by)) {
@@ -346,10 +397,14 @@ function placeStone(x, y) {
     }
 }
 
+
+
 function removeStone(x, y) {
     let hBrush = Math.floor(brushSize / 2)
-    for (let i = -hBrush; i <= hBrush; i++) {
-        for (let j = -hBrush; j <= hBrush; j++) {
+    let offset = (brushSize % 2 === 0) ? 0 : 1
+
+    for (let i = -hBrush; i < hBrush + offset; i++) {
+        for (let j = -hBrush; j < hBrush + offset; j++) {
             let bx = x + i
             let by = y + j
             if (!OOB(bx, by)) {
@@ -436,11 +491,16 @@ function update() {
                     }
                 }
 
-
                 ctx.fillRect(x * 10, y * 10, 10, 10)
             }
         }
     }
+
+    let hBrush = (brushSize % 2 === 0) ? (brushSize / 2) : Math.floor(brushSize / 2)
+    let size = brushSize * 10
+
+    ctx.strokeStyle = '#ffffff'
+    ctx.strokeRect(Math.floor(mX / 10 - hBrush) * 10, Math.floor(mY / 10 - hBrush) * 10, size, size)
 
     requestAnimationFrame(update)
 }
@@ -455,11 +515,23 @@ function loadAddons() {
 }
 
 function save() {
-    const file = new Blob([JSON.stringify(game)], { type: 'text/plain' })
+    let stringified = JSON.stringify(game)
+    stringified = stringified.replaceAll('null,null,null,null,null', '&'),
+    stringified = stringified.replaceAll('[&,&,&,&,&,&,&,&,&,&,&,&]', 'Đ')
+    stringified = stringified.replaceAll('null,null,null,null', '@')
+    stringified = stringified.replaceAll('[&,&,&,@,', 'đ')
+    stringified = stringified.replaceAll('null,null,null', 'Ł')
+    stringified = stringified.replaceAll('null,null', '$')
+    stringified = stringified.replaceAll('null', '€')
+    stringified = stringified.replaceAll('type', '!t')
+    stringified = stringified.replaceAll('colorActivated', '!ca')
+    stringified = stringified.replaceAll('color', '!c')
+    stringified = stringified.replaceAll('power', '!p')
+    const file = new Blob([stringified + '-/-' + version], { type: 'text/plain' })
     const a = document.createElement('a')
     const url = URL.createObjectURL(file)
     a.href = url
-    a.download = 'bluestonesave.json'
+    a.download = 'bluestonesave.bs1'
     document.body.appendChild(a)
     a.click()
     setTimeout(() => {
@@ -474,15 +546,29 @@ document.getElementById("fileInput").addEventListener("change", function (event)
         const reader = new FileReader()
         reader.onload = function (e) {
             radios = []
-            let parsed = JSON.parse(e.target.result)
+            let stringified = e.target.result
+            stringified = stringified.replaceAll('Đ', '[&,&,&,&,&,&,&,&,&,&,&,&]')
+            stringified = stringified.replaceAll('đ', '[&,&,&,@,')
+            stringified = stringified.replaceAll('&', 'null,null,null,null,null')
+            stringified = stringified.replaceAll('@', 'null,null,null,null')
+            stringified = stringified.replaceAll('Ł', 'null,null,null')
+            stringified = stringified.replaceAll('$', 'null,null')
+            stringified = stringified.replaceAll('€', 'null')
+            stringified = stringified.replaceAll('!t', 'type')
+            stringified = stringified.replaceAll('§ca', 'colorActivated')
+            stringified = stringified.replaceAll('!c', 'color')
+            stringified = stringified.replaceAll('!p', 'power')
+            toparse = stringified.split('-/-')
+
+            let parsed = JSON.parse(toparse[0])
             for (let x = 0; x < 100; x++) {
                 for (let y = 0; y < 60; y++) {
                     if (parsed[x][y] == null) {
                         parsed[x][y] = undefined
                     } else {
                         if (parsed[x][y].type == "radio_lamp" || parsed[x][y].type == "reciever") {
-                            radios.push(parsed[x][y]);
-                        }                        
+                            radios.push(parsed[x][y])
+                        }
                     }
                 }
             }
@@ -502,14 +588,33 @@ function setup() {
                 bluestones[stone].ignore.push("tunnel")
             }
         }
+        if (!bluestones[stone].ignore) {
+            bluestones[stone].ignore = ["battery"]
+        } else {
+            if (!bluestones[stone].ignore.includes("battery")) {
+                bluestones[stone].ignore.push("battery")
+            }
+        }
         let button = document.createElement('button')
         button.textContent = stone.replaceAll('_', ' ')
+        button.id = 'elem-' + stone
         button.onclick = () => {
+            document.getElementById("description").textContent = bluestones[stone].description
+            document.getElementById('elem-' + selected).classList.remove('stone-selected')
+            document.getElementById('elem-' + selected).classList.add('stone-unselected')
+
             selected = stone
+
+            button.classList.add('stone-selected')
+            button.classList.remove('stone-unselected')
+
             if (bluestones[stone].selected) {
                 bluestones[stone].selected()
             }
-        }
+
+            button.classList.add('stoneselected');
+        };
+
         button.className = 'stone'
         button.style.backgroundColor = bluestones[stone].color
 

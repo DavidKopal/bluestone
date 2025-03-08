@@ -16,11 +16,13 @@
         <a class="debugcont" id="elem">Elem: none</a>
     </div>
     <hr>
+    <p id="description"></p>
+    <hr>
     <button onclick="resetGame()">Reset</button>
     <button onclick="save()">Save as File</button>
     <button onclick="document.getElementById('fileInput').click()">Load a File</button>
-    <button onclick="brushSize++">+</button>
-    <button onclick="brushSize--">-</button>
+    <button onclick="if (brushSize < 10) brushSize++">+</button>
+    <button onclick="if (brushSize > 1) brushSize--">-</button>
     <input type="file" id="fileInput">
     <hr>
     <div id="buttons">
@@ -34,7 +36,7 @@
         <a class="link" onclick='gotop("https://discord.gg/Xr3SKvyf")'>Discord</a>
     </div>
     <hr>
-    <p>Version: 0.5 - The Radio update</p>
+    <p>Version: 0.6 - The sixth alpha</p>
     <script src="main.js"></script>
     <script src="gotop.js"></script>
 </body>
