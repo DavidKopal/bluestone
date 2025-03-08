@@ -46,6 +46,10 @@ let dustColors = [
     "#0000FF", "#0808FF", "#1010FF", "#1818FF", "#2020FF", "#2828FF"
 ]
 
+let radios = []
+
+let gen = 0
+let channel = ''
 let tunnel = "right"
 let pass_ = 0
 let bluestones = {
@@ -55,6 +59,19 @@ let bluestones = {
     generator: {
         color: "#FF0000",
         constantPower: 30
+    },
+    constant_generator: {
+        color: "#FF1256",
+        ignorePoweredProperty: true,
+        selected: () => {
+            gen = Number(prompt("Constant signal for the generator?"))
+        },
+        placed: (pixel) => {
+            pixel.gen = gen
+        },
+        behavior: (pixel) => {
+            pixel.power = pixel.gen
+        }
     },
     copper: {
         color: "#b87333",
@@ -76,7 +93,7 @@ let bluestones = {
             let ns = pixelNeighbors(pixel.x, pixel.y)
             ns.forEach(n => {
                 let neighbor = game[n[0]][n[1]]
-                if  (neighbor.type == 'copper') {
+                if (neighbor.type == 'copper') {
                     if (neighbor.power > 0) {
                         pixel.disabled = true
                         foundCopper = true
@@ -97,9 +114,63 @@ let bluestones = {
         ignorePoweredProperty: true, // Doesn't set power to 0 even if !powered
         ignore: ['dust', 'copper']
     },
+    receiver: {
+        color: '#ffbcbc',
+        selected: () => {
+            channel = prompt("Which channel to recieve on?")
+        },
+        placed: (pixel) => {
+            pixel.channel = channel
+            radios.push(pixel)
+        },
+        erased: (pixel) => {
+            const index = radios.indexOf(pixel)
+
+            if (index !== -1) {
+                radios.splice(index, 1)
+            }
+        }
+    },
+    sender: {
+        color: '#bcffbc',
+        selected: () => {
+            channel = prompt("Which channel to send to?")
+        },
+        placed: (pixel) => {
+            pixel.channel = channel
+        },
+        behavior: (pixel) => {
+            if (pixel.power > 0) {
+                radios.forEach(radio => {
+                    if (radio.channel == pixel.channel) {
+                        radio.power = pixel.power
+                    }
+                })
+            }
+        }
+    },
     lamp: {
         color: '#404000',
         colorActivated: "#FFFF00",
+    },
+    radio_lamp: {
+        color: '#404000',
+        colorActivated: "#FFFF00",
+        selected: () => {
+            channel = prompt("Which channel to recieve on?")
+        },
+        placed: (pixel) => {
+            pixel.channel = channel
+            radios.push(pixel)
+        },
+        erased: (pixel) => {
+            const index = radios.indexOf(pixel)
+
+            if (index !== -1) {
+                radios.splice(index, 1)
+            }
+        },
+        ignore: ['radio_lamp']
     },
     tunnel: {
         color: '#686868',
@@ -115,7 +186,7 @@ let bluestones = {
         behavior: (pixel) => {
             let trgX = pixel.x
             let trgY = pixel.y
-    
+
             if (pixel.way == 'right') trgX++
             else if (pixel.way == 'left') trgX--
             else if (pixel.way == 'up') trgY--
@@ -126,13 +197,13 @@ let bluestones = {
                 if (neighbor.power < pixel.power) {
                     neighbor.power = pixel.power - 1
                     if (neighbor.type == 'tunnel') {
-                        bluestones[neighbor.type].behavior(neighbor) 
+                        bluestones[neighbor.type].behavior(neighbor)
                     } else if (neighbor.type == 'dust') {
                         neighbor.power = pixel.power - 1
                     }
                 }
             }
-        }       
+        }
     },
     pass: {
         color: '#ffb',
@@ -147,20 +218,20 @@ let bluestones = {
         behavior: (pixel) => {
             let ns = pixelNeighbors(pixel.x, pixel.y)
             let ns2 = []
-        
+
             ns.forEach(n => {
                 let neighbor = game[n[0]][n[1]]
                 if (neighbor.power >= pixel.min) {
                     ns2.push(neighbor.power)
                 }
             })
-        
+
             if (ns2.length > 0) {
                 pixel.power = Math.max(...ns2)
             } else {
                 pixel.power = 0
             }
-        },  
+        },
     }
 }
 bluestones.pass.ignore = Object.keys(bluestones)
@@ -205,6 +276,11 @@ canv.addEventListener('mousemove', (event) => {
     if (!OOB(gameX, gameY)) {
         document.getElementById('coords').textContent = `${gameX}, ${gameY}`
         document.getElementById('power').textContent = `Power: ${Empty(gameX, gameY) ? 0 : game[gameX][gameY].power}`
+        if (!Empty(gameX, gameY)) {
+            document.getElementById('elem').textContent = `Elem: ${game[gameX][gameY].type}`
+        } else {
+            document.getElementById('elem').textContent = "Elem: none"
+        }
     }
     if (!drawing && !erasing) return
 
@@ -225,7 +301,7 @@ function placeStone(x, y) {
         let array = Object.keys(stone.props)
         array.forEach(key => {
             game[x][y][key] = stone.props[key]
-        }) 
+        })
     }
     if (stone.placed) {
         stone.placed(game[x][y])
@@ -233,6 +309,9 @@ function placeStone(x, y) {
 }
 
 function removeStone(x, y) {
+    if (game[x][y].erased) {
+        game[x][y].erased(game[x][y])
+    }
     game[x][y] = undefined
 }
 
@@ -287,7 +366,7 @@ function update() {
                     let maxnp = 0 // max neighbor power
                     let powered = false
                     let ns = pixelNeighbors(pixel.x, pixel.y)
-                    
+
                     ns.forEach(n => {
                         let nx = n[0], ny = n[1]
                         if (prePower[nx] && prePower[nx][ny] !== undefined) {
@@ -300,20 +379,20 @@ function update() {
                             }
                         }
                     })
-                    
+
                     if (powered) {
                         pixel.power = maxnp - 1
                     } else if (!bluestones[pixel.type].ignorePoweredProperty) {
                         pixel.power = 0
                     }
                 }
-                
-                
+
+
                 ctx.fillRect(x * 10, y * 10, 10, 10)
             }
         }
     }
-    
+
     requestAnimationFrame(update)
 }
 
@@ -323,7 +402,7 @@ function loadAddons() {
         script.src = 'addons/' + addon + '.js'
         document.body.appendChild(script)
     })
-    setTimeout(setup,10)
+    setTimeout(setup, 100)
 }
 
 function save() {
@@ -335,16 +414,16 @@ function save() {
     document.body.appendChild(a)
     a.click()
     setTimeout(() => {
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
     }, 0)
 }
 
-document.getElementById("fileInput").addEventListener("change", function(event) {
+document.getElementById("fileInput").addEventListener("change", function (event) {
     const file = event.target.files[0]
     if (file) {
         const reader = new FileReader()
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             let parsed = JSON.parse(e.target.result)
             for (let x = 0; x < 100; x++) {
                 for (let y = 0; y < 60; y++) {
@@ -370,7 +449,7 @@ function setup() {
             }
         }
         let button = document.createElement('button')
-        button.textContent = stone
+        button.textContent = stone.replaceAll('_', ' ')
         button.onclick = () => {
             selected = stone
             if (bluestones[stone].selected) {
@@ -383,10 +462,10 @@ function setup() {
         if (bluestones[stone].colorActivated) {
             button.style.background = `linear-gradient(to right, ${bluestones[stone].color}, ${bluestones[stone].colorActivated})`
         }
-    
+
         document.getElementById('buttons').appendChild(button)
     })
-    
+
     update()
 }
 
