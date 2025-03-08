@@ -9,10 +9,10 @@ for (let x = 0; x < 60; x++) {
     }
 }
 
-let mods = []
+let addons = []
 
-if (localStorage.getItem('mods')) {
-    mods = JSON.parse(localStorage.getItem('mods'))
+if (localStorage.getItem('addons')) {
+    addons = JSON.parse(localStorage.getItem('addons'))
 }
 
 let selected = 'dust'
@@ -45,6 +45,7 @@ let dustColors = [
 ]
 
 let tunnel = "right"
+let pass_ = 0
 let bluestones = {
     dust: {
         color: "#000040",
@@ -70,6 +71,7 @@ let bluestones = {
                 if  (neighbor.type == 'concrete') {
                     if (neighbor.power > 0) {
                         pixel.disabled = true
+                        return
                     } else {
                         pixel.disabled = false
                     }
@@ -96,6 +98,9 @@ let bluestones = {
         },
         placed: (pixel) => {
             pixel.way = tunnel.slice()
+            if (!['right', 'left', 'up', 'down'].includes(pixel.way)) {
+                game[pixel.x][pixel.y] = undefined
+            }
         },
         behavior: (pixel) => {
             let trgX = pixel.x
@@ -118,8 +123,37 @@ let bluestones = {
                 }
             }
         }       
+    },
+    pass: {
+        color: '#ffb',
+        colorActivated: '#FFAB00',
+        ignorePoweredProperty: true,
+        selected: () => {
+            pass_ = prompt("Minimal power for passage)")
+        },
+        placed: (pixel) => {
+            pixel.min = pass_.slice()
+        },
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            let ns2 = []
+        
+            ns.forEach(n => {
+                let neighbor = game[n[0]][n[1]]
+                if (neighbor.power >= pixel.min) {
+                    ns2.push(neighbor.power)
+                }
+            });
+        
+            if (ns2.length > 0) {
+                pixel.power = Math.max(...ns2)
+            } else {
+                pixel.power = 0
+            }
+        },  
     }
 }
+bluestones.pass.ignore = Object.keys(bluestones)
 
 let drawing = false
 let erasing = false
@@ -190,6 +224,16 @@ function placeStone(x, y) {
 
 function removeStone(x, y) {
     game[x][y] = undefined
+}
+
+function resetGame() {
+    game = []
+    for (let x = 0; x < 60; x++) {
+        game[x] = []
+        for (let y = 0; y < 40; y++) {
+            game[x][y] = undefined
+        }
+    }
 }
 
 function update() {
@@ -263,9 +307,9 @@ function update() {
 }
 
 function loadAddons() {
-    mods.forEach(mod => {
+    addons.forEach(addon => {
         let script = document.createElement('script')
-        script.src = 'addons/' + mod + '.js'
+        script.src = 'addons/' + addon + '.js'
         document.body.appendChild(script)
     })
     setTimeout(setup,10)

@@ -11,6 +11,19 @@ html, body {
     color: white;
 }
 
+input {
+    font-family: ps2p;
+    background-color: #1a1a1a;
+    color: white;
+    border: 1px solid white;
+    height: 30px;
+    text-align: center;
+}
+
+#installer {
+    text-align: center;
+}
+
 #game {
     display: block;
     margin: 20px auto;
@@ -34,10 +47,6 @@ html, body {
     transition: all 0.3s ease;
 }
 
-.stone:hover {
-    cursor: pointer;
-}
-
 button {
     padding: 10px 20px;
     margin: 20px;
@@ -48,6 +57,7 @@ button {
     border-radius: 5px;
     transition: background-color 0.3s;
     font-family: ps2p;
+    cursor: pointer;
 }
 
 p {
@@ -75,4 +85,18 @@ p {
 
 .debugcont {
     padding-right: 25px;
+}
+
+h1 {
+    text-align: center;
+}
+
+#other {
+    text-align: center;
+    font-size: large;
+    color: purple;
+}
+
+.link {
+    cursor: pointer;
 }
