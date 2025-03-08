@@ -455,7 +455,7 @@ function loadAddons() {
 }
 
 function save() {
-    const file = new Blob([JSON.stringify(radios),JSON.stringify(game)], { type: 'text/plain' })
+    const file = new Blob([JSON.stringify(game)], { type: 'text/plain' })
     const a = document.createElement('a')
     const url = URL.createObjectURL(file)
     a.href = url
@@ -473,17 +473,20 @@ document.getElementById("fileInput").addEventListener("change", function (event)
     if (file) {
         const reader = new FileReader()
         reader.onload = function (e) {
-            let parsedfirst = JSON.parse(e.target.result)
-            let parsed = parsedfirst[1]
+            radios = []
+            let parsed = JSON.parse(e.target.result)
             for (let x = 0; x < 100; x++) {
                 for (let y = 0; y < 60; y++) {
                     if (parsed[x][y] == null) {
                         parsed[x][y] = undefined
+                    } else {
+                        if (parsed[x][y].type == "radio_lamp" || parsed[x][y].type == "reciever") {
+                            radios.push(parsed[x][y]);
+                        }                        
                     }
                 }
             }
             game = parsed
-            radios = parsedfirst[0]
         }
         reader.readAsText(file)
     }
