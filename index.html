@@ -8,7 +8,7 @@
     <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-    <canvas id="game" width="600" height="400"></canvas>
+    <canvas id="game" width="1000" height="600"></canvas>
     <p></p>
     <div id="debug">
         <a class="debugcont" id="coords">0; 0;</a>
@@ -16,6 +16,9 @@
     </div>
     <hr>
     <button onclick="resetGame()">Reset</button>
+    <button onclick="save()">Save as File</button>
+    <button onclick="document.getElementById('fileInput').click()">Load a File</button>
+    <input type="file" id="fileInput">
     <hr>
     <div id="buttons">
     </div>
@@ -26,7 +29,7 @@
         <a class="link" onclick="gotop('addons.html')">Addons</a>
     </div>
     <hr>
-    <p>Version: 0.3</p>
+    <p>Version: 0.4</p>
     <script src="main.js"></script>
     <script src="gotop.js"></script>
 </body>

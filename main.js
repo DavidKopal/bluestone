@@ -2,9 +2,9 @@ const canv = document.getElementById('game')
 const ctx = canv.getContext('2d')
 
 let game = []
-for (let x = 0; x < 60; x++) {
+for (let x = 0; x < 100; x++) {
     game[x] = []
-    for (let y = 0; y < 40; y++) {
+    for (let y = 0; y < 60; y++) {
         game[x][y] = undefined
     }
 }
@@ -18,7 +18,7 @@ if (localStorage.getItem('addons')) {
 let selected = 'dust'
 
 function OOB(x, y) { // Out of bounds check
-    return x < 0 || x >= 60 || y < 0 || y >= 40
+    return x < 0 || x >= 100 || y < 0 || y >= 60
 }
 
 function Empty(x, y) {
@@ -39,9 +39,11 @@ function pixelNeighbors(x, y) {
 }
 
 let dustColors = [
-    "#000040", "#000050", "#000060", "#000070", "#000080",
-    "#000090", "#0000A0", "#0000B0", "#0000C0", "#0000D0",
-    "#0000E0", "#0000F0", "#0000FF", "#1010FF", "#2020FF"
+    "#000040", "#000048", "#000050", "#000058", "#000060", "#000068",
+    "#000070", "#000078", "#000080", "#000088", "#000090", "#000098",
+    "#0000A0", "#0000A8", "#0000B0", "#0000B8", "#0000C0", "#0000C8",
+    "#0000D0", "#0000D8", "#0000E0", "#0000E8", "#0000F0", "#0000F8",
+    "#0000FF", "#0808FF", "#1010FF", "#1818FF", "#2020FF", "#2828FF"
 ]
 
 let tunnel = "right"
@@ -52,11 +54,16 @@ let bluestones = {
     },
     generator: {
         color: "#FF0000",
-        constantPower: 15
+        constantPower: 30
+    },
+    copper: {
+        color: "#b87333",
+        ignore: ['torch', 'copper']
     },
     concrete: {
-        color: "#FFFFFF",
-        ignore: ['torch', 'concrete']
+        color: "#ededed",
+        constantPower: 0,
+        ignorePoweredProperty: true
     },
     torch: {
         color: "#004000",
@@ -65,27 +72,30 @@ let bluestones = {
             disabled: false
         },
         behavior: (pixel) => {
+            let foundCopper = false
             let ns = pixelNeighbors(pixel.x, pixel.y)
             ns.forEach(n => {
                 let neighbor = game[n[0]][n[1]]
-                if  (neighbor.type == 'concrete') {
+                if  (neighbor.type == 'copper') {
                     if (neighbor.power > 0) {
                         pixel.disabled = true
-                        return
+                        foundCopper = true
                     } else {
-                        pixel.disabled = false
+                        if (!foundCopper) {
+                            pixel.disabled = false
+                        }
                     }
                 }
             })
 
             if (!pixel.disabled) {
-                pixel.power = 15
+                pixel.power = 30
             } else {
                 pixel.power = 0
             }
         },
         ignorePoweredProperty: true, // Doesn't set power to 0 even if !powered
-        ignore: ['dust', 'concrete']
+        ignore: ['dust', 'copper']
     },
     lamp: {
         color: '#404000',
@@ -143,7 +153,7 @@ let bluestones = {
                 if (neighbor.power >= pixel.min) {
                     ns2.push(neighbor.power)
                 }
-            });
+            })
         
             if (ns2.length > 0) {
                 pixel.power = Math.max(...ns2)
@@ -228,9 +238,9 @@ function removeStone(x, y) {
 
 function resetGame() {
     game = []
-    for (let x = 0; x < 60; x++) {
+    for (let x = 0; x < 100; x++) {
         game[x] = []
-        for (let y = 0; y < 40; y++) {
+        for (let y = 0; y < 60; y++) {
             game[x][y] = undefined
         }
     }
@@ -239,8 +249,8 @@ function resetGame() {
 function update() {
     ctx.clearRect(0, 0, canv.width, canv.height)
 
-    for (let x = 0; x < 60; x++) {
-        for (let y = 0; y < 40; y++) {
+    for (let x = 0; x < 100; x++) {
+        for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
                 if (bluestones[pixel.type].behavior) {
@@ -251,17 +261,17 @@ function update() {
     }
 
     let prePower = []
-    for (let x = 0; x < 60; x++) {
+    for (let x = 0; x < 100; x++) {
         prePower[x] = []
-        for (let y = 0; y < 40; y++) {
+        for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 prePower[x][y] = game[x][y].power
             }
         }
     }
 
-    for (let x = 0; x < 60; x++) {
-        for (let y = 0; y < 40; y++) {
+    for (let x = 0; x < 100; x++) {
+        for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
                 if (pixel.type == 'dust') {
@@ -271,7 +281,7 @@ function update() {
                 } else {
                     ctx.fillStyle = pixel.color
                 }
-                if (bluestones[pixel.type].constantPower) {
+                if (bluestones[pixel.type].constantPower !== undefined) {
                     pixel.power = bluestones[pixel.type].constantPower
                 } else {
                     let maxnp = 0 // max neighbor power
@@ -298,6 +308,7 @@ function update() {
                     }
                 }
                 
+                
                 ctx.fillRect(x * 10, y * 10, 10, 10)
             }
         }
@@ -314,6 +325,39 @@ function loadAddons() {
     })
     setTimeout(setup,10)
 }
+
+function save() {
+    const file = new Blob([JSON.stringify(game)], { type: 'text/plain' })
+    const a = document.createElement('a')
+    const url = URL.createObjectURL(file)
+    a.href = url
+    a.download = 'bluestonesave.json'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    }, 0)
+}
+
+document.getElementById("fileInput").addEventListener("change", function(event) {
+    const file = event.target.files[0]
+    if (file) {
+        const reader = new FileReader()
+        reader.onload = function(e) {
+            let parsed = JSON.parse(e.target.result)
+            for (let x = 0; x < 100; x++) {
+                for (let y = 0; y < 60; y++) {
+                    if (parsed[x][y] == null) {
+                        parsed[x][y] = undefined
+                    }
+                }
+            }
+            game = parsed
+        }
+        reader.readAsText(file)
+    }
+})
 
 function setup() {
     let bluestoneArray = Object.keys(bluestones)
