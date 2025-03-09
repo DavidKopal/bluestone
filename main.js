@@ -485,8 +485,8 @@ let bluestones = {
         color: '#686868',
         behavior: (pixel) => {
             if (!Empty(pixel.x-1,pixel.y) && !Empty(pixel.x+1,pixel.y)) {
-                left = game[pixel.x-1][pixel.y]
-                right = game[pixel.x+1][pixel.y]
+                let left = game[pixel.x-1][pixel.y]
+                let right = game[pixel.x+1][pixel.y]
                 if (left.type !== right.type) return;
                 if (left.power > right.power) {
                     right.power = pixel.power - 1
@@ -495,8 +495,8 @@ let bluestones = {
                 }
             }
             if (!Empty(pixel.x,pixel.y-1) && !Empty(pixel.x,pixel.y-1)) {
-                up = game[pixel.x][pixel.y-1]
-                down = game[pixel.x][pixel.y+1]
+                let up = game[pixel.x][pixel.y-1]
+                let down = game[pixel.x][pixel.y+1]
                 if (up.type !== down.type) return;
                 if (up.power > down.power) {
                     down.power = up.power - 1
