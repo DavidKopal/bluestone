@@ -18,7 +18,7 @@ for (let x = 0; x < width; x++) {
 }
 
 let version = '1.1.2'
-let subversion = '1.1.2.3'
+let subversion = '1.1.2.4'
 
 let brushSize = 1
 
@@ -495,7 +495,7 @@ let bluestones = {
                     left.power = pixel.power - 1
                 }
             }
-            if (!Empty(pixel.x,pixel.y-1) && !Empty(pixel.x,pixel.y-1)) {
+            if (!Empty(pixel.x,pixel.y-1) && !Empty(pixel.x,pixel.y+1)) {
                 let up = game[pixel.x][pixel.y-1]
                 let down = game[pixel.x][pixel.y+1]
                 if (up.type !== down.type) return;
