@@ -15,7 +15,7 @@ for (let x = 0; x < 100; x++) {
     }
 }
 
-let version = '1.0'
+let version = '1.1.0'
 
 let brushSize = 1
 
