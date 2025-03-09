@@ -743,7 +743,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
             toparse2 = toparse[0].split('<w>')
 
             let parsed = JSON.parse(toparse2[1].trim())
-            if (toparse[0] == '1') {
+            if (toparse2[0] == '1') {
                 extraWidth()
             } 
             for (let x = 0; x < width; x++) {
