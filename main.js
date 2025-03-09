@@ -687,7 +687,6 @@ function update() {
         for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
-                console.log(game[x][y].type)
                 if (bluestones[pixel.type].behavior) {
                     bluestones[pixel.type].behavior(pixel)
                 }
