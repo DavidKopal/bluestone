@@ -7,8 +7,10 @@ Do not use the compression property.
 const canv = document.getElementById('game')
 const ctx = canv.getContext('2d')
 
+let width = 100
+
 let game = []
-for (let x = 0; x < 100; x++) {
+for (let x = 0; x < width; x++) {
     game[x] = []
     for (let y = 0; y < 60; y++) {
         game[x][y] = undefined
@@ -28,7 +30,7 @@ if (localStorage.getItem('addons')) {
 let selected = 'dust'
 
 function OOB(x, y) { // Out of bounds check
-    return x < 0 || x >= 100 || y < 0 || y >= 60
+    return x < 0 || x >= width || y < 0 || y >= 60
 }
 
 function Empty(x, y) {
@@ -138,7 +140,7 @@ let bluestones = {
         description: "Generator which can be turned on/off with powered copper.",
         compression: "$t"
     },
-    receiver: {
+    reciever: {
         color: '#ffbcbc',
         selected: () => {
             channel = prompt("Which channel to recieve on?")
@@ -357,7 +359,7 @@ let bluestones = {
         ignorePoweredProperty: true,
         selected: () => {
             let input = prompt("Time in ms")
-            cTime = parseInt(input) || 1000
+            cTime = parseInt(input) || width0
         },
         placed: (pixel) => {
             pixel.time = cTime
@@ -594,7 +596,7 @@ function removeStone(x, y) {
 
 function resetGame() {
     game = []
-    for (let x = 0; x < 100; x++) {
+    for (let x = 0; x < width; x++) {
         game[x] = []
         for (let y = 0; y < 60; y++) {
             game[x][y] = undefined
@@ -602,10 +604,19 @@ function resetGame() {
     }
 }
 
+let xWidth = 0
+
+function extraWidth() {
+    width = 150
+    document.getElementById('game').width = 1500
+    xWidth = 1
+    resetGame()
+}
+
 function update() {
     ctx.clearRect(0, 0, canv.width, canv.height)
 
-    for (let x = 0; x < 100; x++) {
+    for (let x = 0; x < width; x++) {
         for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
@@ -617,7 +628,7 @@ function update() {
     }
 
     let prePower = []
-    for (let x = 0; x < 100; x++) {
+    for (let x = 0; x < width; x++) {
         prePower[x] = []
         for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
@@ -626,7 +637,7 @@ function update() {
         }
     }
 
-    for (let x = 0; x < 100; x++) {
+    for (let x = 0; x < width; x++) {
         for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
@@ -684,7 +695,7 @@ function loadAddons() {
         script.src = 'addons/' + addon + '.js'
         document.body.appendChild(script)
     })
-    setTimeout(setup, 100)
+    setTimeout(setup, width)
 }
 
 function save() {
@@ -698,7 +709,7 @@ function save() {
     stringified = stringified.replaceAll('null', '€')
     stringified = stringified.replaceAll('type', '!t')
     stringified = stringified.replaceAll('power', '!p')
-    const file = new Blob([stringified + '-/-' + version], { type: 'text/plain' })
+    const file = new Blob([xWidth + '<w>' + stringified + '-/-' + version], { type: 'text/plain' })
     const a = document.createElement('a')
     const url = URL.createObjectURL(file)
     a.href = url
@@ -716,6 +727,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
     if (file) {
         const reader = new FileReader()
         reader.onload = function (e) {
+            xWidth = 0
             radios = []
             let stringified = e.target.result
             stringified = stringified.replaceAll('Đ', '[&,&,&,&,&,&,&,&,&,&,&,&]')
@@ -728,9 +740,13 @@ document.getElementById("fileInput").addEventListener("change", function (event)
             stringified = stringified.replaceAll('!t', 'type')
             stringified = stringified.replaceAll('!p', 'power')
             toparse = stringified.split('-/-')
+            toparse2 = toparse[0].split('<w>')
 
-            let parsed = JSON.parse(toparse[0])
-            for (let x = 0; x < 100; x++) {
+            let parsed = JSON.parse(toparse2[1].trim())
+            if (toparse[0] == '1') {
+                extraWidth()
+            } 
+            for (let x = 0; x < width; x++) {
                 for (let y = 0; y < 60; y++) {
                     if (parsed[x][y] == null) {
                         parsed[x][y] = undefined
