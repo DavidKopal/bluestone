@@ -18,6 +18,7 @@ for (let x = 0; x < width; x++) {
 }
 
 let version = '1.1.2'
+let subversion = '1.1.2.1'
 
 let brushSize = 1
 
