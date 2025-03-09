@@ -1,3 +1,9 @@
+/*
+!!!READ THIS IF YOU ARE ADDONING!!!
+
+Do not use the compression property.
+*/
+
 const canv = document.getElementById('game')
 const ctx = canv.getContext('2d')
 
@@ -9,7 +15,7 @@ for (let x = 0; x < 100; x++) {
     }
 }
 
-let version = '0.6'
+let version = '1.0'
 
 let brushSize = 1
 
@@ -55,16 +61,20 @@ let radios = []
 let gen = 0
 let channel = ''
 let tunnel = "right"
+let tunnelInput = "right"
 let pass_ = 0
+let cTime = 0
 let bluestones = {
     dust: {
         color: "#000040",
-        description: "Like your everyday's wire."
+        description: "Like your everyday's wire.",
+        compression: "$d"
     },
     generator: {
         color: "#FF0000",
         constantPower: 30,
-        description: "Generates power out of air molecules."
+        description: "Generates power out of air molecules.",
+        compression: "$g"
     },
     constant_generator: {
         color: "#FF1256",
@@ -78,18 +88,21 @@ let bluestones = {
         behavior: (pixel) => {
             pixel.power = pixel.gen
         },
-        description: "Generates a set power amount out of air molecules."
+        description: "Generates a set power amount out of air molecules.",
+        compression: "$c"
     },
     copper: {
         color: "#b87333",
-        ignore: ['torch', 'copper', 'extender'],
-        description: "Used for manipulation with batteries, extenders, torches and more."
+        ignore: ['torch', 'copper', 'extender', 'switch'],
+        description: "Used for manipulation with batteries, extenders, torches and more.",
+        compression: "$m"
     },
     concrete: {
         color: "#ededed",
         constantPower: 0,
         ignorePoweredProperty: true,
-        description: "Does nothing for the world, like a communist."
+        description: "Does nothing for the world, like a communist.",
+        compression: "$o"
     },
     torch: {
         color: "#004000",
@@ -122,7 +135,8 @@ let bluestones = {
         },
         ignorePoweredProperty: true, // Doesn't set power to 0 even if !powered
         ignore: ['dust', 'copper'],
-        description: "Generator which can be turned on/off with powered copper."
+        description: "Generator which can be turned on/off with powered copper.",
+        compression: "$t"
     },
     receiver: {
         color: '#ffbcbc',
@@ -140,7 +154,8 @@ let bluestones = {
                 radios.splice(index, 1)
             }
         },
-        description: "Recieves power from senders."
+        description: "Recieves power from senders.",
+        compression: "$r"
     },
     sender: {
         color: '#bcffbc',
@@ -159,12 +174,14 @@ let bluestones = {
                 })
             }
         },
-        description: "Sends power to recievers and radio lamps."
+        description: "Sends power to recievers and radio lamps.",
+        compression: "$s"
     },
     lamp: {
         color: '#404000',
         colorActivated: "#FFFF00",
-        description: "Lights up when powered."
+        description: "Lights up when powered.",
+        compression: "$l"
     },
     radio_lamp: {
         color: '#404000',
@@ -184,7 +201,8 @@ let bluestones = {
             }
         },
         ignore: ['radio_lamp'],
-        description: "Lights up when recieving a signal."
+        description: "Lights up when recieving a signal.",
+        compression: "$rl"
     },
     tunnel: {
         color: '#686868',
@@ -218,7 +236,8 @@ let bluestones = {
                 }
             }
         },
-        description: "Redirects signals to go a specific way."
+        description: "Redirects signals to go a specific way.",
+        compression: "$tn"
     },
     pass: {
         color: '#ffb',
@@ -247,7 +266,38 @@ let bluestones = {
                 pixel.power = 0
             }
         },
-        description: "Allows power to go through when it's equal to or higher than a set value."
+        description: "Allows power to go through when it's equal to or higher than a set value.",
+        compression: "$p"
+    },
+    rev_pass: {
+        color: '#ffb',
+        colorActivated: '#FFAB00',
+        ignorePoweredProperty: true,
+        selected: () => {
+            pass_ = prompt("Maximum power for passage)")
+        },
+        placed: (pixel) => {
+            pixel.max = pass_.slice()
+        },
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            let ns2 = []
+
+            ns.forEach(n => {
+                let neighbor = game[n[0]][n[1]]
+                if (neighbor.power <= pixel.max) {
+                    ns2.push(neighbor.power)
+                }
+            })
+
+            if (ns2.length > 0) {
+                pixel.power = Math.max(...ns2)
+            } else {
+                pixel.power = 0
+            }
+        },
+        description: "Allows power to go through when it's equal to or lower than a set value.",
+        compression: "$rp"
     },
     extender: {
         color: '#b400b4',
@@ -269,7 +319,8 @@ let bluestones = {
         },
         ignorePoweredProperty: true,
         ignore: ['copper'],
-        description: "Extends signal with powered copper."
+        description: "Extends signal with powered copper.",
+        compression: "$e"
     },
     battery: {
         color: '#bede00',
@@ -287,19 +338,135 @@ let bluestones = {
                 }
                 if (powered) {
                     ns2.forEach(neighbor => {
-                        neighbor.power = pixel.power
+                        if (neighbor.power < pixel.power) {
+                            neighbor.power = pixel.power
+                        }
                     })
-                    pixel.power = 0
                 }
 
             })
         },
         ignorePoweredProperty: true,
         ignore: ['copper'],
-        description: "Stores and releases energy when reacting with powered copper."
+        description: "Stores and releases energy when reacting with powered copper.",
+        compression: "$b"
+    },
+    clock: {
+        color: '#ffd700',
+        colorActivated: '#ffa800',
+        ignorePoweredProperty: true,
+        selected: () => {
+            let input = prompt("Time in ms")
+            cTime = parseInt(input) || 1000
+        },
+        placed: (pixel) => {
+            pixel.time = cTime
+            pixel.lUpdate = Date.now()
+            pixel.activated = false
+        },
+        props: {
+            activated: false,
+        },
+        behavior: (pixel) => {
+            let now = Date.now()
+            if (now - pixel.lUpdate >= pixel.time) {
+                pixel.activated = !pixel.activated
+                pixel.lUpdate = now
+            }
+
+            if (pixel.activated) {
+                pixel.power = 30
+            } else {
+                pixel.power = 0
+            }
+        },
+        description: "Sends out a signal repeatedly.",
+        compression: "$cl"
+    },
+    switch: {
+        color: '#a0a0a0',
+        colorActivated: '#56ff56',
+        ignorePoweredProperty: true,
+        placed: (pixel) => {
+            pixel.tState = false
+            pixel.lcp = false
+        },
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            let medp = ns.some(n => {
+                let neighbor = game[n[0]][n[1]]
+                return neighbor.type === "copper" && neighbor.power > 0
+            })
+
+            if (medp && !pixel.lcp) {
+                pixel.tState = !pixel.tState
+            }
+
+            pixel.lcp = medp
+
+            if (pixel.tState) {
+                pixel.power = 30
+            } else {
+                pixel.power = 0
+            }
+        },
+        description: "Toggles on/off when a powered copper block is next to it.",
+        compression: "$sw",
+        ignore: ["copper"],
+    },
+    button: {
+        color: '#a0a0a0',
+        colorActivated: '#505050',
+        ignorePoweredProperty: true,
+        props: {
+            clicked: 0
+        },
+        behavior: (pixel) => {
+            if (pixel.clicked > 0) {
+                pixel.clicked--
+                pixel.power = 30
+            } else {
+                pixel.power = 0
+            }
+        },
+        description: "Sents out a short signal when toggled.",
+        compression: "$bt",
+    },
+    lever: {
+        color: '#a0a0a0',
+        colorActivated: '#505050',
+        ignorePoweredProperty: true,
+        props: {
+            toggled: false
+        },
+        behavior: (pixel) => {
+            if (pixel.toggled) {
+                pixel.power = 30
+            } else {
+                pixel.power = 0
+            }
+        },
+        description: "Turns on/off when toggled..",
+        compression: "$bt",
+    },
+    toggle: {
+        color: '#f00',
+        tool: (pixel) => {
+            if (pixel.type == "button" && pixel.clicked == 0) {
+                pixel.clicked = 80
+            } else if (pixel.type == "lever") {
+                if (pixel.toggled == false) {
+                    pixel.toggled = true
+                } else {
+                    pixel.toggled = false
+                }
+            }
+        },
+        description: "Toggles buttons and levers.",
     },
 }
 bluestones.pass.ignore = Object.keys(bluestones)
+bluestones.button.ignore = Object.keys(bluestones)
 
 let drawing = false
 let erasing = false
@@ -372,25 +539,27 @@ function placeStone(x, y) {
             let bx = x + i
             let by = y + j
             if (!OOB(bx, by)) {
-                game[bx][by] = {
-                    type: selected.slice(),
-                    color: bluestones[selected].color.slice(),
-                    x: bx,
-                    y: by,
-                    power: bluestones[selected].constantPower || 0
-                }
-                if (bluestones[selected].colorActivated) {
-                    game[bx][by]['colorActivated'] = bluestones[selected].colorActivated.slice()
-                }
-                let stone = bluestones[selected]
-                if (stone.props) {
-                    let array = Object.keys(stone.props)
-                    array.forEach(key => {
-                        game[bx][by][key] = stone.props[key]
-                    })
-                }
-                if (stone.placed) {
-                    stone.placed(game[bx][by])
+                if (bluestones[selected].tool) {
+                    if (!Empty(bx, by)) {
+                        bluestones[selected].tool(game[bx][by])
+                    }
+                } else {
+                    game[bx][by] = {
+                        type: selected.slice(),
+                        x: bx,
+                        y: by,
+                        power: bluestones[selected].constantPower || 0
+                    }
+                    let stone = bluestones[selected]
+                    if (stone.props) {
+                        let array = Object.keys(stone.props)
+                        array.forEach(key => {
+                            game[bx][by][key] = stone.props[key]
+                        })
+                    }
+                    if (stone.placed) {
+                        stone.placed(game[bx][by])
+                    }
                 }
             }
         }
@@ -407,12 +576,16 @@ function removeStone(x, y) {
         for (let j = -hBrush; j < hBrush + offset; j++) {
             let bx = x + i
             let by = y + j
-            if (!OOB(bx, by)) {
-                if (game[bx][by] !== undefined) {
-                    if (game[bx][by].erased) {
-                        game[bx][by].erased(game[bx][by])
+            if (bluestones[selected].tool && !Empty(bx, by)) {
+                bluestones[selected].tool(game[bx][by])
+            } else {
+                if (!OOB(bx, by)) {
+                    if (game[bx][by] !== undefined) {
+                        if (game[bx][by].erased) {
+                            game[bx][by].erased(game[bx][by])
+                        }
+                        game[bx][by] = undefined
                     }
-                    game[bx][by] = undefined
                 }
             }
         }
@@ -462,7 +635,7 @@ function update() {
                 } else if (pixel.power > 0 && bluestones[pixel.type].colorActivated) {
                     ctx.fillStyle = bluestones[pixel.type].colorActivated
                 } else {
-                    ctx.fillStyle = pixel.color
+                    ctx.fillStyle = bluestones[pixel.type].color
                 }
                 if (bluestones[pixel.type].constantPower !== undefined) {
                     pixel.power = bluestones[pixel.type].constantPower
@@ -524,8 +697,6 @@ function save() {
     stringified = stringified.replaceAll('null,null', '$')
     stringified = stringified.replaceAll('null', '€')
     stringified = stringified.replaceAll('type', '!t')
-    stringified = stringified.replaceAll('colorActivated', '!ca')
-    stringified = stringified.replaceAll('color', '!c')
     stringified = stringified.replaceAll('power', '!p')
     const file = new Blob([stringified + '-/-' + version], { type: 'text/plain' })
     const a = document.createElement('a')
@@ -555,8 +726,6 @@ document.getElementById("fileInput").addEventListener("change", function (event)
             stringified = stringified.replaceAll('$', 'null,null')
             stringified = stringified.replaceAll('€', 'null')
             stringified = stringified.replaceAll('!t', 'type')
-            stringified = stringified.replaceAll('§ca', 'colorActivated')
-            stringified = stringified.replaceAll('!c', 'color')
             stringified = stringified.replaceAll('!p', 'power')
             toparse = stringified.split('-/-')
 
@@ -612,8 +781,8 @@ function setup() {
                 bluestones[stone].selected()
             }
 
-            button.classList.add('stoneselected');
-        };
+            button.classList.add('stoneselected')
+        }
 
         button.className = 'stone'
         button.style.backgroundColor = bluestones[stone].color
@@ -622,7 +791,11 @@ function setup() {
             button.style.background = `linear-gradient(to right, ${bluestones[stone].color}, ${bluestones[stone].colorActivated})`
         }
 
-        document.getElementById('buttons').appendChild(button)
+        if (bluestones[stone].tool) {
+            document.getElementById('tools').appendChild(button)
+        } else {
+            document.getElementById('buttons').appendChild(button)
+        }
     })
 
     update()
