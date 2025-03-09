@@ -58,6 +58,14 @@ let dustColors = [
     "#0000FF", "#0808FF", "#1010FF", "#1818FF", "#2020FF", "#2828FF"
 ]
 
+let gdustColors = [
+    "#004000", "#004800", "#005000", "#005800", "#006000", "#006800",
+    "#007000", "#007800", "#008000", "#008800", "#009000", "#009800",
+    "#00A000", "#00A800", "#00B000", "#00B800", "#00C000", "#00C800",
+    "#00D000", "#00D800", "#00E000", "#00E800", "#00F000", "#00F800",
+    "#00FF00", "#08FF08", "#10FF10", "#18FF18", "#20FF20", "#28FF28"
+]
+
 let radios = []
 
 let gen = 0
@@ -70,7 +78,14 @@ let bluestones = {
     dust: {
         color: "#000040",
         description: "Like your everyday's wire.",
-        compression: "$d"
+        compression: "$d",
+        ignore: ["green_dust"]
+    },
+    green_dust: {
+        color: "#004000",
+        description: "Like your everyday's wire but green.",
+        compression: "$gd",
+        ignore: ["dust"]
     },
     generator: {
         color: "#FF0000",
@@ -466,6 +481,57 @@ let bluestones = {
         },
         description: "Toggles buttons and levers.",
     },
+    bridge: {
+        color: '#686868',
+        behavior: (pixel) => {
+            if (!Empty(pixel.x-1,pixel.y) && !Empty(pixel.x+1,pixel.y)) {
+                left = game[pixel.x-1][pixel.y]
+                right = game[pixel.x+1][pixel.y]
+                if (left.type !== right.type) return;
+                if (left.power > right.power) {
+                    right.power = pixel.power - 1
+                } else if (left.power < right.power) {
+                    left.power = pixel.power - 1
+                }
+            }
+            if (!Empty(pixel.x,pixel.y-1) && !Empty(pixel.x,pixel.y-1)) {
+                up = game[pixel.x][pixel.y-1]
+                down = game[pixel.x][pixel.y+1]
+                if (up.type !== down.type) return;
+                if (up.power > down.power) {
+                    down.power = up.power - 1
+                } else if (up.power < down.power) {
+                    up.power = down.power - 1
+                }
+            }
+        },
+        description: "Allows signals to go straight through each other.",
+        compression: "$tn",
+        ignore: ["bridge", "multi_bridge"]
+    },
+    multi_bridge: {
+        color: '#686868',
+        behavior: (pixel) => {
+            let ns = pixelNeighbors(pixel.x, pixel.y)
+            ns.forEach(n => {
+                let neighbor = game[n[0]][n[1]]
+                ns.forEach(n2 => {
+                    let neighbor2 = game[n2[0]][n2[1]]
+                    if (neighbor !== neighbor2) {
+                        if (neighbor.type !== neighbor2.type) return;
+                        if (neighbor.power > neighbor2.power) {
+                            neighbor2.power = neighbor.power - 1
+                        } else if (neighbor.power < neighbor2.power) {
+                            neighbor.power = neighbor2.power - 1
+                        }
+                    }
+                })
+            })
+        },
+        description: "Allows signals to go straight through each other.",
+        compression: "$tn",
+        ignore: ["bridge", "multi_bridge"]
+    }
 }
 bluestones.pass.ignore = Object.keys(bluestones)
 bluestones.button.ignore = Object.keys(bluestones)
@@ -620,6 +686,7 @@ function update() {
         for (let y = 0; y < 60; y++) {
             if (!Empty(x, y)) {
                 let pixel = game[x][y]
+                console.log(game[x][y].type)
                 if (bluestones[pixel.type].behavior) {
                     bluestones[pixel.type].behavior(pixel)
                 }
@@ -643,6 +710,8 @@ function update() {
                 let pixel = game[x][y]
                 if (pixel.type == 'dust') {
                     ctx.fillStyle = dustColors[pixel.power]
+                } else if (pixel.type == "green_dust") {
+                    ctx.fillStyle = gdustColors[pixel.power]
                 } else if (pixel.power > 0 && bluestones[pixel.type].colorActivated) {
                     ctx.fillStyle = bluestones[pixel.type].colorActivated
                 } else {
@@ -763,23 +832,20 @@ document.getElementById("fileInput").addEventListener("change", function (event)
     }
 })
 
+let allIgnore = ["tunnel", "battery", "bridge", "multi_bridge"]
+
 function setup() {
     let bluestoneArray = Object.keys(bluestones)
     bluestoneArray.forEach(stone => {
-        if (!bluestones[stone].ignore) {
-            bluestones[stone].ignore = ["tunnel"]
-        } else {
-            if (!bluestones[stone].ignore.includes("tunnel")) {
-                bluestones[stone].ignore.push("tunnel")
+        allIgnore.forEach(ignored => {
+            if (!bluestones[stone].ignore) {
+                bluestones[stone].ignore = [ignored]
+            } else {
+                if (!bluestones[stone].ignore.includes(ignored)) {
+                    bluestones[stone].ignore.push(ignored)
+                }
             }
-        }
-        if (!bluestones[stone].ignore) {
-            bluestones[stone].ignore = ["battery"]
-        } else {
-            if (!bluestones[stone].ignore.includes("battery")) {
-                bluestones[stone].ignore.push("battery")
-            }
-        }
+        })
         let button = document.createElement('button')
         button.textContent = stone.replaceAll('_', ' ')
         button.id = 'elem-' + stone
