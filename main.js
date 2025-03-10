@@ -18,7 +18,7 @@ for (let x = 0; x < width; x++) {
 }
 
 let version = '1.1.2'
-let subversion = '1.1.2.4'
+let subversion = '1.1.2.5'
 
 let brushSize = 1
 
@@ -831,6 +831,43 @@ document.getElementById("fileInput").addEventListener("change", function (event)
         reader.readAsText(file)
     }
 })
+
+function addonButton(stone) {
+    if (document.getElementById('elem-' + stone)) return;
+    let button = document.createElement('button')
+    button.textContent = stone.replaceAll('_', ' ')
+    button.id = 'elem-' + stone
+    button.onclick = () => {
+        document.getElementById("description").textContent = bluestones[stone].description
+        document.getElementById('elem-' + selected).classList.remove('stone-selected')
+        document.getElementById('elem-' + selected).classList.add('stone-unselected')
+
+        selected = stone
+
+        button.classList.add('stone-selected')
+        button.classList.remove('stone-unselected')
+
+        if (bluestones[stone].selected) {
+            bluestones[stone].selected()
+        }
+
+        button.classList.add('stoneselected')
+    }
+
+    button.className = 'stone'
+    button.style.backgroundColor = bluestones[stone].color
+
+    if (bluestones[stone].colorActivated) {
+        button.style.background = `linear-gradient(to right, ${bluestones[stone].color}, ${bluestones[stone].colorActivated})`
+    }
+
+    if (bluestones[stone].tool) {
+        document.getElementById('tools').appendChild(button)
+    } else {
+        document.getElementById('buttons').appendChild(button)
+    }
+}
+
 
 let allIgnore = ["tunnel", "battery", "bridge", "multi_bridge"]
 
