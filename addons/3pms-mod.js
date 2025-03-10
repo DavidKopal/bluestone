@@ -7,7 +7,6 @@ console.log("3pms mod exists")
 bluestones.red_dust = {
     color: "#FF0000",
     description: "Like your everyday's wire but red.",
-    compression: "$rd",
     ignore: ["green_dust", "dust"]
 }
 bluestones.green_dust.ignore = ["red_dust", "dust"]
