@@ -485,9 +485,9 @@ let bluestones = {
     bridge: {
         color: '#686868',
         behavior: (pixel) => {
-            if (!Empty(pixel.x-1,pixel.y) && !Empty(pixel.x+1,pixel.y)) {
-                let left = game[pixel.x-1][pixel.y]
-                let right = game[pixel.x+1][pixel.y]
+            if (!Empty(pixel.x - 1, pixel.y) && !Empty(pixel.x + 1, pixel.y)) {
+                let left = game[pixel.x - 1][pixel.y]
+                let right = game[pixel.x + 1][pixel.y]
                 if (left.type !== right.type) return;
                 if (left.power > right.power) {
                     right.power = pixel.power - 1
@@ -495,9 +495,9 @@ let bluestones = {
                     left.power = pixel.power - 1
                 }
             }
-            if (!Empty(pixel.x,pixel.y-1) && !Empty(pixel.x,pixel.y+1)) {
-                let up = game[pixel.x][pixel.y-1]
-                let down = game[pixel.x][pixel.y+1]
+            if (!Empty(pixel.x, pixel.y - 1) && !Empty(pixel.x, pixel.y + 1)) {
+                let up = game[pixel.x][pixel.y - 1]
+                let down = game[pixel.x][pixel.y + 1]
                 if (up.type !== down.type) return;
                 if (up.power > down.power) {
                     down.power = up.power - 1
@@ -764,13 +764,13 @@ function loadAddons() {
         script.src = 'addons/' + addon + '.js'
         document.body.appendChild(script)
     })
-    setTimeout(setup, width)
+    setup()
 }
 
 function save() {
     let stringified = JSON.stringify(game)
     stringified = stringified.replaceAll('null,null,null,null,null', '&'),
-    stringified = stringified.replaceAll('[&,&,&,&,&,&,&,&,&,&,&,&]', 'Đ')
+        stringified = stringified.replaceAll('[&,&,&,&,&,&,&,&,&,&,&,&]', 'Đ')
     stringified = stringified.replaceAll('null,null,null,null', '@')
     stringified = stringified.replaceAll('[&,&,&,@,', 'đ')
     stringified = stringified.replaceAll('null,null,null', 'Ł')
@@ -814,7 +814,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
             let parsed = JSON.parse(toparse2[1].trim())
             if (toparse2[0] == '1') {
                 extraWidth()
-            } 
+            }
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < 60; y++) {
                     if (parsed[x][y] == null) {
@@ -831,6 +831,8 @@ document.getElementById("fileInput").addEventListener("change", function (event)
         reader.readAsText(file)
     }
 })
+
+let allIgnore = ["tunnel", "battery", "bridge", "multi_bridge"]
 
 function addonButton(stone) {
     if (document.getElementById('elem-' + stone)) return;
@@ -868,9 +870,6 @@ function addonButton(stone) {
     }
 }
 
-
-let allIgnore = ["tunnel", "battery", "bridge", "multi_bridge"]
-
 function setup() {
     let bluestoneArray = Object.keys(bluestones)
     bluestoneArray.forEach(stone => {
@@ -883,6 +882,7 @@ function setup() {
                 }
             }
         })
+        if (document.getElementById('elem-' + stone)) return;
         let button = document.createElement('button')
         button.textContent = stone.replaceAll('_', ' ')
         button.id = 'elem-' + stone
