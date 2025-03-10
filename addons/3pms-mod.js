@@ -11,3 +11,4 @@ bluestones.red_dust = {
 }
 bluestones.green_dust.ignore.push("red_dust")
 bluestones.dust.ignore.push("red_dust")
+addonButton("red_dust")
