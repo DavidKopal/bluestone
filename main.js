@@ -375,7 +375,7 @@ let bluestones = {
         ignorePoweredProperty: true,
         selected: () => {
             let input = prompt("Time in ms")
-            cTime = parseInt(input) || width
+            cTime = parseInt(input) || 100
         },
         placed: (pixel) => {
             pixel.time = cTime
