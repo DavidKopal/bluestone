@@ -9,5 +9,5 @@ bluestones.red_dust = {
     description: "Like your everyday's wire but red.",
     ignore: ["green_dust", "dust"]
 }
-bluestones.green_dust.ignore = ["red_dust", "dust"]
-bluestones.dust.ignore = ["red_dust", "green_dust"]
+bluestones.green_dust.ignore.push("red_dust")
+bluestones.dust.ignore.push("red_dust")
